@@ -3,5 +3,3 @@ pymssql
 pandas
 numpy
 openai==0.28
-json
-pickle
