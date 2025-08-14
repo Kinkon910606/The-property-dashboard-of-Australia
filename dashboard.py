@@ -17,15 +17,17 @@ st.set_page_config(layout="wide")
 custom_colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9']
 px.defaults.color_discrete_sequence = custom_colors
 
+@st.cache_data
+def load_data():
+    if st.session_state.get('median_data') is None:
+        with open('./data/dataMedian.json', 'r', encoding='utf-8') as f:
+            st.session_state.median_data = pd.DataFrame(json.load(f))
 
-if st.session_state.get('median_data') is None:
-    with open('./data/dataMedian.json', 'r', encoding='utf-8') as f:
-        st.session_state.median_data = pd.DataFrame(json.load(f))
+    if st.session_state.get('data') is None:
+        with open('./data/data.pkl', 'rb') as f:
+            st.session_state.data = pd.DataFrame(pickle.load(f))
+load_data()
 
-if st.session_state.get('data') is None:
-    with open('./data/data.pkl', 'rb') as f:
-        st.session_state.data = pd.DataFrame(pickle.load(f))
-# st.write(st.session_state.median_data)
 ######################################################################################################################################################
 st.title("澳洲雪梨地區房地產資料")
 
