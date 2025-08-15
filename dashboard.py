@@ -10,30 +10,79 @@ import requests
 from datetime import date, timedelta  
 import json,pickle
 
+def exchange():
+    today = date.today()
+    data = None
+    max_attempts = 30  # 最多嘗試30天
+    attempts = 0
+    
+    while data is None and attempts < max_attempts:
+        print(f"嘗試獲取 {today} 的匯率資料")
+        url = "https://api.finmindtrade.com/api/v4/data"
+        token = ""  # 參考登入，獲取金鑰
+        headers = {"Authorization": f"Bearer {token}"}
+        parameter = {
+            "dataset": "TaiwanExchangeRate",
+            "data_id": "AUD",
+            "start_date": today.strftime("%Y-%m-%d"),
+        }
+        
+        try:
+            response = requests.get(url, headers=headers, params=parameter)
+            response_data = response.json()
+            
+            if response_data.get('data') and len(response_data['data']) > 0:
+                data = pd.DataFrame(response_data['data'])
+                print(f"成功獲取 {today} 的匯率資料")
+                break
+            else:
+                print(f"{today} 無匯率資料，嘗試前一天")
+                today = today - timedelta(days=1)
+                attempts += 1
+                
+        except Exception as e:
+            print(f"API 請求錯誤: {e}")
+            today = today - timedelta(days=1)
+            attempts += 1
+    
+    if data is None:
+        print("無法獲取匯率資料")
+        return today, 0  # 返回預設值
+    return today + timedelta(days=1), data['cash_sell'].values[0]  
 
-
+exchange_date, exchange_rate = exchange()
 st.set_page_config(layout="wide")
 # 設定自定義顏色配色
 custom_colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9']
 px.defaults.color_discrete_sequence = custom_colors
 
+if st.session_state.get('median_data') is None:
+    st.session_state.median_data = None 
+if st.session_state.get('data') is None:
+    st.session_state.data = None
 @st.cache_data
-def load_data():
-    if st.session_state.get('median_data') is None:
-        with open('./data/dataMedian.json', 'r', encoding='utf-8') as f:
-            st.session_state.median_data = pd.DataFrame(json.load(f))
+def load_data(exchange_rate):
+    with open('./data/dataMedian.json', 'r', encoding='utf-8') as f:
+        st.session_state.median_data = pd.DataFrame(json.load(f))
 
-    if st.session_state.get('data') is None:
-        with open('./data/data.pkl', 'rb') as f:
-            st.session_state.data = pd.DataFrame(pickle.load(f))
-load_data()
+    with open('./data/data.pkl', 'rb') as f:
+        st.session_state.data = pd.DataFrame(pickle.load(f))
+    
+    st.session_state.data['Purchase Price(NTD)'] = st.session_state.data['Purchase Price(NTD)']  /20*exchange_rate
+    st.session_state.data['UNITS'] = st.session_state.data['UNITS']  /20 * exchange_rate
+
+    st.session_state.median_data['medianEHT(台幣)'] = st.session_state.median_data['medianEHT(台幣)']  /20 * exchange_rate
+    st.session_state.median_data['medianADT(台幣)'] = st.session_state.median_data['medianADT(台幣)']  /20 * exchange_rate
+
+load_data(exchange_rate)
 
 ######################################################################################################################################################
 st.title("澳洲雪梨地區房地產資料")
+st.caption(f"📊 匯率擷取日期：{exchange_date.strftime('%Y年%m月%d日')} | 💱 澳幣匯率：1 AUD = {exchange_rate:.2f} TWD")
 
 with st.expander("資料預覽", expanded=False):
     if st.session_state.get('data') is not None:
-        st.dataframe(st.session_state.data)
+        st.dataframe(st.session_state.median_data)
     else:
         st.warning("尚未載入資料，請先執行查詢。")
 ######################################################################################################################################################
