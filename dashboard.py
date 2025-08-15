@@ -56,24 +56,31 @@ st.set_page_config(layout="wide")
 custom_colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9']
 px.defaults.color_discrete_sequence = custom_colors
 
-if st.session_state.get('median_data') is None:
-    st.session_state.median_data = None 
-if st.session_state.get('data') is None:
-    st.session_state.data = None
+
+
 @st.cache_data
 def load_data():
+    if "median_data" not in st.session_state:
+        st.session_state.median_data = None 
+    if "data" not in st.session_state:
+        st.session_state.data = None
     with open('./data/dataMedian.json', 'r', encoding='utf-8') as f:
         st.session_state.median_data = pd.DataFrame(json.load(f))
 
     with open('./data/data.pkl', 'rb') as f:
         st.session_state.data = pd.DataFrame(pickle.load(f))
-    
+
+    st.session_state.data['Purchase Price(NTD)'] = st.session_state.data['Purchase Price'] * exchange_rate
+    st.session_state.data['UNITS'] = st.session_state.data['UNITS']/20*exchange_rate
+
+    st.session_state.median_data['medianEHT(台幣)'] = st.session_state.median_data['medianPriceEHT'] * exchange_rate / 10
+    st.session_state.median_data['medianADT(台幣)'] = st.session_state.median_data['medianPriceADT'] * exchange_rate / 10
 
 load_data()
 
 ######################################################################################################################################################
 st.title("澳洲雪梨地區房地產資料")
-
+st.caption(f"📊 匯率擷取日期：{exchange_date.strftime('%Y年%m月%d日')} | 💱 澳幣匯率：1 AUD = {exchange_rate:.2f} TWD")
 
 with st.expander("資料預覽", expanded=False):
     if st.session_state.get('data') is not None:
