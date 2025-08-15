@@ -14,7 +14,12 @@ if "median_data" not in st.session_state:
     st.session_state.median_data = None 
 if "data" not in st.session_state:
     st.session_state.data = None
+if 'exchange_rate' not in st.session_state:
+    st.session_state.exchange_rate = None
+if 'exchange_date' not in st.session_state:
+    st.session_state.exchange_date = None
 
+@st.cache_data
 def exchange():
     today = date.today()
     data = None
@@ -53,16 +58,16 @@ def exchange():
     if data is None:
         print("無法獲取匯率資料")
         return today, 0  # 返回預設值
-    return today + timedelta(days=1), data['cash_sell'].values[0]  
+    return today , data['cash_sell'].values[0]  
 
-exchange_date, exchange_rate = exchange()
+st.session_state.exchange_date, st.session_state.exchange_rate = exchange()
 st.set_page_config(layout="wide")
 # 設定自定義顏色配色
 custom_colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9']
 px.defaults.color_discrete_sequence = custom_colors
 
 @st.cache_data
-def load_data():
+def load_data(exchange_rate):
     
     with open('./data/dataMedian.json', 'r', encoding='utf-8') as f:
         median_data = pd.DataFrame(json.load(f))
@@ -76,11 +81,11 @@ def load_data():
     median_data['medianEHT(台幣)'] = median_data['medianPriceEHT'] * exchange_rate / 10
     median_data['medianADT(台幣)'] = median_data['medianPriceADT'] * exchange_rate / 10
     return data, median_data 
-st.session_state.data, st.session_state.median_data = load_data()
+st.session_state.data, st.session_state.median_data = load_data(st.session_state.exchange_rate)
 
 ######################################################################################################################################################
 st.title("澳洲雪梨地區房地產資料")
-st.caption(f"📊 匯率擷取日期：{exchange_date.strftime('%Y年%m月%d日')} | 💱 澳幣匯率：1 AUD = {exchange_rate:.2f} TWD")
+st.caption(f"📊 匯率擷取日期：{st.session_state.exchange_date.strftime('%Y年%m月%d日')} | 💱 澳幣匯率：1 AUD = {st.session_state.exchange_rate:.2f} TWD")
 # if st.session_state.data is not None & st.session_state.median_data is not None:
 with st.expander("資料預覽", expanded=False):
     if st.session_state.get('data') is not None:
