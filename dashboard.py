@@ -61,30 +61,23 @@ if st.session_state.get('median_data') is None:
 if st.session_state.get('data') is None:
     st.session_state.data = None
 @st.cache_data
-def load_data(exchange_rate):
+def load_data():
     with open('./data/dataMedian.json', 'r', encoding='utf-8') as f:
         st.session_state.median_data = pd.DataFrame(json.load(f))
 
     with open('./data/data.pkl', 'rb') as f:
         st.session_state.data = pd.DataFrame(pickle.load(f))
     
-    
-load_data(exchange_rate)
+
+load_data()
 
 ######################################################################################################################################################
 st.title("澳洲雪梨地區房地產資料")
-st.caption(f"📊 匯率擷取日期：{exchange_date.strftime('%Y年%m月%d日')} | 💱 澳幣匯率：1 AUD = {exchange_rate:.2f} TWD")
-
-# st.session_state.data.loc[:, 'Purchase Price(NTD)'] = st.session_state.data['Purchase Price(NTD)']  /20 * exchange_rate
-# st.session_state.data['UNITS'] = st.session_state.data['UNITS']  /20 * exchange_rate
-
-# st.session_state.median_data['medianEHT(台幣)'] = st.session_state.median_data['medianEHT(台幣)']  /20 * exchange_rate
-# st.session_state.median_data['medianADT(台幣)'] = st.session_state.median_data['medianADT(台幣)']  /20 * exchange_rate
 
 
 with st.expander("資料預覽", expanded=False):
     if st.session_state.get('data') is not None:
-        st.dataframe(st.session_state.median_data)
+        st.dataframe(st.session_state.data)
     else:
         st.warning("尚未載入資料，請先執行查詢。")
 ######################################################################################################################################################
