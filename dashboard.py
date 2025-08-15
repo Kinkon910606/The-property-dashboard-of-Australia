@@ -10,6 +10,11 @@ import requests
 from datetime import date, timedelta  
 import json,pickle
 
+if "median_data" not in st.session_state:
+    st.session_state.median_data = None 
+if "data" not in st.session_state:
+    st.session_state.data = None
+
 def exchange():
     today = date.today()
     data = None
@@ -56,32 +61,27 @@ st.set_page_config(layout="wide")
 custom_colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9']
 px.defaults.color_discrete_sequence = custom_colors
 
-
-
 @st.cache_data
 def load_data():
-    if "median_data" not in st.session_state:
-        st.session_state.median_data = None 
-    if "data" not in st.session_state:
-        st.session_state.data = None
+    
     with open('./data/dataMedian.json', 'r', encoding='utf-8') as f:
-        st.session_state.median_data = pd.DataFrame(json.load(f))
+        median_data = pd.DataFrame(json.load(f))
 
     with open('./data/data.pkl', 'rb') as f:
-        st.session_state.data = pd.DataFrame(pickle.load(f))
+        data = pd.DataFrame(pickle.load(f))
 
-    st.session_state.data['Purchase Price(NTD)'] = st.session_state.data['Purchase Price'] * exchange_rate
-    st.session_state.data['UNITS'] = st.session_state.data['UNITS']/20*exchange_rate
+    data['Purchase Price(NTD)'] = data['Purchase Price'] * exchange_rate
+    data['UNITS'] = data['UNITS']/20*exchange_rate
 
-    st.session_state.median_data['medianEHT(台幣)'] = st.session_state.median_data['medianPriceEHT'] * exchange_rate / 10
-    st.session_state.median_data['medianADT(台幣)'] = st.session_state.median_data['medianPriceADT'] * exchange_rate / 10
-
-load_data()
+    median_data['medianEHT(台幣)'] = median_data['medianPriceEHT'] * exchange_rate / 10
+    median_data['medianADT(台幣)'] = median_data['medianPriceADT'] * exchange_rate / 10
+    return data, median_data 
+st.session_state.data, st.session_state.median_data = load_data()
 
 ######################################################################################################################################################
 st.title("澳洲雪梨地區房地產資料")
 st.caption(f"📊 匯率擷取日期：{exchange_date.strftime('%Y年%m月%d日')} | 💱 澳幣匯率：1 AUD = {exchange_rate:.2f} TWD")
-
+# if st.session_state.data is not None & st.session_state.median_data is not None:
 with st.expander("資料預覽", expanded=False):
     if st.session_state.get('data') is not None:
         st.dataframe(st.session_state.data)
@@ -298,8 +298,8 @@ with col2:
             }
 
             fig_line = px.line(df_bar2, x='yyyy', y='mean', color='Zoning',color_discrete_map=zoning_color_map,
-                       labels={'mean': '平均單價(萬/坪)', 'yyyy': '年度', 'Zoning': '建物類別'},
-                       markers=True, text='mean')
+                    labels={'mean': '平均單價(萬/坪)', 'yyyy': '年度', 'Zoning': '建物類別'},
+                    markers=True, text='mean')
             fig_line.update_traces(texttemplate='%{text:.1f}', textposition="top center")
             fig_line.update_layout(
             legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
@@ -364,14 +364,14 @@ with col1:
 ###################
 with col2:
     st.subheader(f":blue[📅{quarter[:4]}年第{quarter[5:]}季 - 結算期間分布]", anchor =False, divider='blue')
-   
+
     if dist != '全區':
         df4 = st.session_state.data[(st.session_state.data['Quarter'] == quarter) & (st.session_state.data['Greater Sydney District'] == dist)]
     else:
         df4 = st.session_state.data[st.session_state.data['Quarter'] == quarter]  
     df_zoning = df4.groupby(['Council', 'TermType']).agg(
             count=('UNITS', 'count')).reset_index()
-   
+
     with st.container(border=True):
         
         # st.write("這裡可以放其他圖表或資訊")
@@ -384,10 +384,10 @@ with col2:
         
         color_map = {'Short-term': '#98D8C8', 'Medium-term': '#FFA07A', 'Long-term': '#FF6B6B'}
         fig_grouped_bar = px.histogram(df4, x='Council', color='TermType', 
-              barnorm='percent',
-              color_discrete_map=color_map,
-              category_orders={'TermType': ['Short-term', 'Medium-term', 'Long-term'], 'Council': council_order},
-              labels={'Council': 'Council', 'TermType': '交易期間類型', 'percent': '百分比'})
+            barnorm='percent',
+            color_discrete_map=color_map,
+            category_orders={'TermType': ['Short-term', 'Medium-term', 'Long-term'], 'Council': council_order},
+            labels={'Council': 'Council', 'TermType': '交易期間類型', 'percent': '百分比'})
         fig_grouped_bar.update_traces(texttemplate='%{y:.1f}%', textposition='auto')
         fig_grouped_bar.update_layout(
             xaxis_tickangle=-45,
