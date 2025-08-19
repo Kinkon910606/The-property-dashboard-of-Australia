@@ -19,7 +19,7 @@ if 'exchange_rate' not in st.session_state:
 if 'exchange_date' not in st.session_state:
     st.session_state.exchange_date = None
 
-@st.cache_data
+
 def exchange():
     today = date.today()
     data = None
@@ -472,4 +472,5 @@ if st.sidebar.button('生成AI分析結果') :
             time.sleep(0.6)
 
     robot = st.sidebar.chat_message("assistant")
+
     robot.write_stream(stream_data(answer))
